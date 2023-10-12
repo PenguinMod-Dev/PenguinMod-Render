@@ -250,6 +250,15 @@ class RenderWebGL extends EventEmitter {
         // tw: track id of pen skin
         this._penSkinId = null;
 
+        // pm: extra rendering settings
+        this.customRenderConfig = {
+            textCostumeResolution: {
+                capped: false,
+                fixed: false,
+                value: 1
+            }
+        };
+
         this.useHighQualityRender = true;
 
         this.offscreenTouching = false;
