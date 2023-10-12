@@ -292,6 +292,16 @@ class RenderWebGL extends EventEmitter {
         gl.enable(gl.BLEND);
         gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
 
+        // TODO: if this works, move it into another file
+        /* eslint-disable global-require */
+        const vsFullText = require('raw-loader!./shaders/bloom.vert.glsl');
+        const fsFullText = require('raw-loader!./shaders/bloom.frag.glsl');
+        /* eslint-enable global-require */
+        this.extraShaders = {
+            bloom: twgl.createProgramInfo(gl, [vsFullText, fsFullText])
+        };
+        this._shaderFrameBuffer = twgl.createFramebufferInfo(gl);
+
         /**
          * Whether or not the renderer should be drawing to an XR layer.
          * Used for the Virtual Reality extension.
@@ -992,6 +1002,9 @@ class RenderWebGL extends EventEmitter {
 
         const gl = this._gl;
 
+        // TODO: actually fuckin do this the right way lmao
+        const sceneFBI = this._shaderFrameBuffer;
+
         const xrLayer = this.xrLayer;
         if (this.xrEnabled) {
             // todo: mayb this single line is better idk
@@ -1001,7 +1014,9 @@ class RenderWebGL extends EventEmitter {
             // black full transparency apparently
             gl.clearColor(0, 0, 0, 0);
         } else {
-            twgl.bindFramebufferInfo(gl, null);
+            // TODO: uncomment this and comment line with sceneFBI instead
+            // twgl.bindFramebufferInfo(gl, null);
+            twgl.bindFramebufferInfo(gl, sceneFBI);
             gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
             gl.clearColor(...this._backgroundColor4f);
         }
@@ -1054,6 +1069,24 @@ class RenderWebGL extends EventEmitter {
                 skipPrivateSkins: snapshotRequested
             });
             gl.disable(gl.SCISSOR_TEST);
+        }
+
+        twgl.bindFramebufferInfo(gl, null);
+        gl.clearColor(...this._backgroundColor4f);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+
+        if (this.extraShaders && this.extraShaders.bloom) {
+            console.log('yea i be bloomin', sceneFBI);
+            const uniforms = {
+                u_texture0: sceneFBI.attachments[0],
+                u_matrix: twgl.m4.identity(),
+            };
+            const currentShader = this.extraShaders.bloom;
+            gl.useProgram(currentShader.program);
+            twgl.setUniforms(currentShader, uniforms);
+            twgl.setBuffersAndAttributes(gl, currentShader, this._bufferInfo);
+            // twgl.drawBufferInfo(gl, this._bufferInfo, gl.TRIANGLES);
+            twgl.drawBufferInfo(gl, this._bufferInfo);
         }
 
         if (snapshotRequested) {
