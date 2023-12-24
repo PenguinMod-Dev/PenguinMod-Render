@@ -2308,9 +2308,6 @@ class RenderWebGL extends EventEmitter {
             // the ignoreVisibility flag is used (e.g. for stamping or touchingColor).
             if (!drawable.getVisible() && !opts.ignoreVisibility) continue;
 
-            // Skip private skins, if requested.
-            if (opts.skipPrivateSkins && drawable.skin.private) continue;
-
             // drawableScale is the "framebuffer-pixel-space" scale of the drawable, as percentages of the drawable's
             // "native size" (so 100 = same as skin's "native size", 200 = twice "native size").
             // If the framebuffer dimensions are the same as the stage's "native" size, there's no need to calculate it.
@@ -2322,6 +2319,9 @@ class RenderWebGL extends EventEmitter {
 
             // If the skin or texture isn't ready yet, skip it.
             if (!drawable.skin || !drawable.skin.getTexture(drawableScale, drawableTransform)) continue;
+
+            // Skip private skins, if requested.
+            if (opts.skipPrivateSkins && drawable.skin.private) continue;
 
             const uniforms = {};
 

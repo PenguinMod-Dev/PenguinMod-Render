@@ -174,6 +174,13 @@ ShaderManager.EFFECT_INFO = {
         mask: 1 << 11,
         converter: x => (x / 100) + 1,
         shapeChanges: false
+    },
+    /** tintColor effect */
+    tintColor: {
+        uniformName: 'u_tintColor',
+        mask: 1 << 12,
+        converter: x => x - 1,
+        shapeChanges: false
     }
 };
 

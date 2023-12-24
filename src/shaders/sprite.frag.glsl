@@ -47,6 +47,9 @@ uniform float u_opaque;
 #ifdef ENABLE_saturation
 uniform float u_saturation;
 #endif // ENABLE_saturation
+#ifdef ENABLE_tintColor
+uniform highp float u_tintColor;
+#endif // ENABLE_tintColor
 
 #ifdef DRAW_MODE_line
 varying vec4 v_lineColor;
@@ -68,7 +71,7 @@ varying vec2 v_texCoord;
 // Smaller values can cause problems on some mobile devices.
 const float epsilon = 1e-3;
 
-#if !defined(DRAW_MODE_silhouette) && (defined(ENABLE_color) || defined(ENABLE_saturation))
+#if !defined(DRAW_MODE_silhouette) && (defined(ENABLE_color) || defined(ENABLE_saturation) || defined(ENABLE_tintColor))
 // Branchless color conversions based on code from:
 // http://www.chilliant.com/rgb2hsv.html by Ian Taylor
 // Based in part on work by Sam Hocevar and Emil Persson
@@ -124,7 +127,15 @@ vec3 convertHSV2RGB(vec3 hsv)
 	float c = hsv.z * hsv.y;
 	return rgb * c + hsv.z - c;
 }
-#endif // !defined(DRAW_MODE_silhouette) && (defined(ENABLE_color) || defined(ENABLE_saturation))
+
+vec3 decimalToRGB(highp float decimalColor) {
+	highp float blue = mod(decimalColor, 256.0) / 255.0;
+	highp float green = mod(floor(decimalColor / 256.0), 256.0) / 255.0;
+	highp float red = mod(floor(decimalColor / 65536.0), 256.0) / 255.0;
+
+	return vec3(red, green, blue);
+}
+#endif // !defined(DRAW_MODE_silhouette) && (defined(ENABLE_color) || defined(ENABLE_saturation) || defined(ENABLE_tintColor))
 
 const vec2 kCenter = vec2(0.5, 0.5);
 
@@ -176,7 +187,7 @@ void main()
 
 	gl_FragColor = texture2D(u_skin, texcoord0);
 
-	#if defined(ENABLE_color) || defined(ENABLE_brightness) || defined(ENABLE_saturation)
+	#if defined(ENABLE_color) || defined(ENABLE_brightness) || defined(ENABLE_saturation) || defined(ENABLE_tintColor)
 	// Divide premultiplied alpha values for proper color processing
 	// Add epsilon to avoid dividing by 0 for fully transparent pixels
 	gl_FragColor.rgb = clamp(gl_FragColor.rgb / (gl_FragColor.a + epsilon), 0.0, 1.0);
@@ -212,6 +223,14 @@ void main()
 		gl_FragColor.rgb = convertHSV2RGB(hsv);
 	}
 	#endif // ENABLE_saturation
+	
+	#ifdef ENABLE_tintColor
+	{
+		vec3 tintRgb = decimalToRGB(u_tintColor);
+
+		gl_FragColor.rgb *= tintRgb;
+	}
+	#endif // ENABLE_tintColor
 
 	#ifdef ENABLE_brightness
 	gl_FragColor.rgb = clamp(gl_FragColor.rgb + vec3(u_brightness), vec3(0), vec3(1));
@@ -220,7 +239,7 @@ void main()
 	// Re-multiply color values
 	gl_FragColor.rgb *= gl_FragColor.a + epsilon;
 
-	#endif // defined(ENABLE_color) || defined(ENABLE_brightness) || defined(ENABLE_saturation)
+	#endif // defined(ENABLE_color) || defined(ENABLE_brightness) || defined(ENABLE_saturation) || defined(ENABLE_tintColor)
 
 	#ifdef ENABLE_ghost
 	gl_FragColor *= u_ghost;

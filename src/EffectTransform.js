@@ -8,6 +8,13 @@ const twgl = require('twgl.js');
 
 const {rgbToHsv, hsvToRgb} = require('./util/color-conversions');
 const ShaderManager = require('./ShaderManager');
+const decimalToRgb = (decimal) => {
+    const a = (decimal >> 24) & 0xFF;
+    const r = (decimal >> 16) & 0xFF;
+    const g = (decimal >> 8) & 0xFF;
+    const b = decimal & 0xFF;
+    return { r: r, g: g, b: b, a: a > 0 ? a : 255 };
+}
 
 /**
  * A texture coordinate is between 0 and 1. 0.5 is the center position.
@@ -50,8 +57,9 @@ class EffectTransform {
         const enableColor = (effects & ShaderManager.EFFECT_INFO.color.mask) !== 0;
         const enableSaturation = (effects & ShaderManager.EFFECT_INFO.saturation.mask) !== 0;
         const enableBrightness = (effects & ShaderManager.EFFECT_INFO.brightness.mask) !== 0;
+        const enableTintColor = (effects & ShaderManager.EFFECT_INFO.tintColor.mask) !== 0;
 
-        if (enableColor || enableSaturation || enableBrightness) {
+        if (enableColor || enableSaturation || enableBrightness || enableTintColor) {
             // gl_FragColor.rgb /= gl_FragColor.a + epsilon;
             // Here, we're dividing by the (previously pre-multiplied) alpha to ensure HSV is properly calculated
             // for partially transparent pixels.
@@ -114,6 +122,16 @@ class EffectTransform {
                 inOutColor[0] += brightness;
                 inOutColor[1] += brightness;
                 inOutColor[2] += brightness;
+            }
+
+            if (enableTintColor) {
+                // vec3 tintRgb = decimalToRgb(u_tintColor);
+                const tintRgb = decimalToRgb(uniforms.u_tintColor);
+
+                // gl_FragColor.rgb *= tintRgb;
+                inOutColor[0] * tintRgb.r;
+                inOutColor[1] * tintRgb.g;
+                inOutColor[2] * tintRgb.b;
             }
 
             // gl_FragColor.rgb *= gl_FragColor.a + epsilon;
