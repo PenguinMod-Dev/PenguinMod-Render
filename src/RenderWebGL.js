@@ -300,6 +300,9 @@ class RenderWebGL extends EventEmitter {
         this.extraShaders = {
             bloom: twgl.createProgramInfo(gl, [vsFullText, fsFullText])
         };
+        this.enabledShaders = {
+            bloom: false
+        };
         this._shaderFrameBuffer = twgl.createFramebufferInfo(gl);
 
         /**
@@ -1002,7 +1005,7 @@ class RenderWebGL extends EventEmitter {
 
         const gl = this._gl;
 
-        // TODO: actually fuckin do this the right way lmao
+        // TODO: actually do this the right way lmao
         const sceneFBI = this._shaderFrameBuffer;
 
         const xrLayer = this.xrLayer;
@@ -1014,9 +1017,12 @@ class RenderWebGL extends EventEmitter {
             // black full transparency apparently
             gl.clearColor(0, 0, 0, 0);
         } else {
-            // TODO: uncomment this and comment line with sceneFBI instead
-            // twgl.bindFramebufferInfo(gl, null);
-            twgl.bindFramebufferInfo(gl, sceneFBI);
+            // TODO: recode to handle this for all shaders, not just bloom
+            if (this.enabledShaders.bloom) {
+                twgl.bindFramebufferInfo(gl, sceneFBI);
+            } else {
+                twgl.bindFramebufferInfo(gl, null);
+            }
             gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
             gl.clearColor(...this._backgroundColor4f);
         }
@@ -1071,11 +1077,11 @@ class RenderWebGL extends EventEmitter {
             gl.disable(gl.SCISSOR_TEST);
         }
 
-        twgl.bindFramebufferInfo(gl, null);
-        gl.clearColor(...this._backgroundColor4f);
-        gl.clear(gl.COLOR_BUFFER_BIT);
-
-        if (this.extraShaders && this.extraShaders.bloom) {
+        if (this.extraShaders && this.extraShaders.bloom && this.enabledShaders.bloom) {
+            twgl.bindFramebufferInfo(gl, null);
+            gl.clearColor(...this._backgroundColor4f);
+            gl.clear(gl.COLOR_BUFFER_BIT);
+            // TOOD: this doesnt work, presumably an issue with the shader itself?
             console.log('yea i be bloomin', sceneFBI);
             const uniforms = {
                 u_texture0: sceneFBI.attachments[0],
