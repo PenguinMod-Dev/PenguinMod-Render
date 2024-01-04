@@ -1018,7 +1018,7 @@ class RenderWebGL extends EventEmitter {
             gl.clearColor(0, 0, 0, 0);
         } else {
             // TODO: recode to handle this for all shaders, not just bloom
-            if (this.enabledShaders.bloom) {
+            if (this.enabledShaders && this.enabledShaders.bloom) {
                 twgl.bindFramebufferInfo(gl, sceneFBI);
             } else {
                 twgl.bindFramebufferInfo(gl, null);
@@ -1077,7 +1077,7 @@ class RenderWebGL extends EventEmitter {
             gl.disable(gl.SCISSOR_TEST);
         }
 
-        if (this.extraShaders && this.extraShaders.bloom && this.enabledShaders.bloom) {
+        if (this.extraShaders && this.extraShaders.bloom && this.enabledShaders && this.enabledShaders.bloom) {
             twgl.bindFramebufferInfo(gl, null);
             gl.clearColor(...this._backgroundColor4f);
             gl.clear(gl.COLOR_BUFFER_BIT);
