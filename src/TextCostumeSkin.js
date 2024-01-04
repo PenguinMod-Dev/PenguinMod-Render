@@ -1,3 +1,34 @@
+const CUSTOM_STATE_KEY = Symbol();
+
+const ALIGN_LEFT = 0;
+const ALIGN_RIGHT = 1;
+const ALIGN_CENTER = 2;
+
+let compatibilityMode = true;
+
+const FONTS = [
+  "Sans Serif",
+  "Serif",
+  "Handwriting",
+  "Marker",
+  "Curly",
+  "Pixel",
+];
+
+const DEFAULT_COLOR = "#575e75";
+const DEFAULT_FONT = "Handwriting";
+const DEFAULT_WIDTH = vm.runtime.stageWidth;
+const DEFAULT_ALIGN = ALIGN_CENTER;
+const DEFAULT_FONT_SIZE = 24;
+
+const DEFAULT_TYPE_DELAY = 1000 / 15;
+
+const RAINBOW_TIME_PER = 1000;
+const DEFAULT_RAINBOW_DURATION = 2000;
+
+const DEFAULT_ZOOM_DURATION = 500;
+
+let globalFrameTime = 0;
 
 
   /**
