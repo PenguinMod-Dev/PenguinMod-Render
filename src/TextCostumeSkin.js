@@ -467,3 +467,5 @@
       return this._texture;
     }
   }
+
+  module.exports = TextCostumeSkin;
