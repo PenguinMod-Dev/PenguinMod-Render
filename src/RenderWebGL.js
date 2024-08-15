@@ -3,6 +3,7 @@ const EventEmitter = require('events');
 const hull = require('hull.js');
 const twgl = require('twgl.js');
 
+const SVGRenderer = require('scratch-svg-renderer');
 const Skin = require('./Skin');
 const BitmapSkin = require('./BitmapSkin');
 const Drawable = require('./Drawable');
@@ -129,9 +130,9 @@ class RenderWebGL extends EventEmitter {
                 xrCompatible: true
             };
             return !!(
-                optCanvas.getContext('webgl', options) ||
+                optCanvas.getContext('webgl2', options) ||
                 optCanvas.getContext('experimental-webgl', options) ||
-                optCanvas.getContext('webgl2', options)
+                optCanvas.getContext('webgl', options)
             );
         } catch (e) {
             return false;
@@ -155,8 +156,8 @@ class RenderWebGL extends EventEmitter {
         // getWebGLContext = try WebGL 1.0 only
         // getContext = try WebGL 2.0 and if that doesn't work, try WebGL 1.0
         // getWebGLContext || getContext = try WebGL 1.0 and if that doesn't work, try WebGL 2.0
-        return twgl.getWebGLContext(canvas, contextAttribs) ||
-            twgl.getContext(canvas, contextAttribs);
+        return twgl.getContext(canvas, contextAttribs) ||
+            twgl.getWebGLContext(canvas, contextAttribs);
     }
 
     /**
@@ -292,19 +293,6 @@ class RenderWebGL extends EventEmitter {
         gl.enable(gl.BLEND);
         gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
 
-        // TODO: if this works, move it into another file
-        /* eslint-disable global-require */
-        const vsFullText = require('raw-loader!./shaders/bloom.vert.glsl');
-        const fsFullText = require('raw-loader!./shaders/bloom.frag.glsl');
-        /* eslint-enable global-require */
-        this.extraShaders = {
-            bloom: twgl.createProgramInfo(gl, [vsFullText, fsFullText])
-        };
-        this.enabledShaders = {
-            bloom: false
-        };
-        this._shaderFrameBuffer = twgl.createFramebufferInfo(gl);
-
         /**
          * Whether or not the renderer should be drawing to an XR layer.
          * Used for the Virtual Reality extension.
@@ -363,6 +351,7 @@ class RenderWebGL extends EventEmitter {
          */
         this.exports = {
             twgl,
+            SVGRenderer,
             Drawable,
             Skin,
             BitmapSkin,
@@ -465,18 +454,19 @@ class RenderWebGL extends EventEmitter {
      * @param {number} red The red component for the background.
      * @param {number} green The green component for the background.
      * @param {number} blue The blue component for the background.
+     * @param {number} alpha The Alpha component for the background. (0-1)
      */
-    setBackgroundColor (red, green, blue) {
+    setBackgroundColor (red, green, blue, alpha) {
         this.dirty = true;
 
         this._backgroundColor4f[0] = red;
         this._backgroundColor4f[1] = green;
         this._backgroundColor4f[2] = blue;
+        this._backgroundColor4f[3] = alpha;
 
         this._backgroundColor3b[0] = red * 255;
         this._backgroundColor3b[1] = green * 255;
         this._backgroundColor3b[2] = blue * 255;
-
     }
 
     /**
@@ -1005,9 +995,6 @@ class RenderWebGL extends EventEmitter {
 
         const gl = this._gl;
 
-        // TODO: actually do this the right way lmao
-        const sceneFBI = this._shaderFrameBuffer;
-
         const xrLayer = this.xrLayer;
         if (this.xrEnabled) {
             // todo: mayb this single line is better idk
@@ -1017,12 +1004,7 @@ class RenderWebGL extends EventEmitter {
             // black full transparency apparently
             gl.clearColor(0, 0, 0, 0);
         } else {
-            // TODO: recode to handle this for all shaders, not just bloom
-            if (this.enabledShaders && this.enabledShaders.bloom) {
-                twgl.bindFramebufferInfo(gl, sceneFBI);
-            } else {
-                twgl.bindFramebufferInfo(gl, null);
-            }
+            twgl.bindFramebufferInfo(gl, null);
             gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
             gl.clearColor(...this._backgroundColor4f);
         }
@@ -1075,24 +1057,6 @@ class RenderWebGL extends EventEmitter {
                 skipPrivateSkins: snapshotRequested
             });
             gl.disable(gl.SCISSOR_TEST);
-        }
-
-        if (this.extraShaders && this.extraShaders.bloom && this.enabledShaders && this.enabledShaders.bloom) {
-            twgl.bindFramebufferInfo(gl, null);
-            gl.clearColor(...this._backgroundColor4f);
-            gl.clear(gl.COLOR_BUFFER_BIT);
-            // TOOD: this doesnt work, presumably an issue with the shader itself?
-            console.log('yea i be bloomin', sceneFBI);
-            const uniforms = {
-                u_texture0: sceneFBI.attachments[0],
-                u_matrix: twgl.m4.identity(),
-            };
-            const currentShader = this.extraShaders.bloom;
-            gl.useProgram(currentShader.program);
-            twgl.setUniforms(currentShader, uniforms);
-            twgl.setBuffersAndAttributes(gl, currentShader, this._bufferInfo);
-            // twgl.drawBufferInfo(gl, this._bufferInfo, gl.TRIANGLES);
-            twgl.drawBufferInfo(gl, this._bufferInfo);
         }
 
         if (snapshotRequested) {
@@ -1706,7 +1670,8 @@ class RenderWebGL extends EventEmitter {
             this._drawThese([drawableID], ShaderManager.DRAW_MODE.straightAlpha, projection,
                 {
                     // Don't apply the ghost effect. TODO: is this an intentional design decision?
-                    effectMask: ~ShaderManager.EFFECT_INFO.ghost.mask,
+                    // gsa: i wonder how deathly it would be to remove this
+                    // effectMask: ~ShaderManager.EFFECT_INFO.ghost.mask,
                     // We're doing this in screen-space, so the framebuffer dimensions should be those of the canvas in
                     // screen-space. This is used to ensure SVG skins are rendered at the proper resolution.
                     framebufferWidth: canvas.width,
@@ -2563,7 +2528,7 @@ class RenderWebGL extends EventEmitter {
     }
 
     getPenDrawableId () {
-        return this._allDrawables.findIndex(drawable => drawable instanceof PenSkin);
+        return this._allDrawables.findIndex(drawable => drawable._skin._id === this._penSkinId);
     }
     
     /**

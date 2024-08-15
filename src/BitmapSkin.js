@@ -9,7 +9,7 @@ class BitmapSkin extends Skin {
      * @param {!int} id - The ID for this Skin.
      * @param {!RenderWebGL} renderer - The renderer which will use this skin.
      */
-    constructor(id, renderer) {
+    constructor (id, renderer) {
         super(id, renderer);
 
         /** @type {!int} */
@@ -22,7 +22,7 @@ class BitmapSkin extends Skin {
     /**
      * Dispose of this object. Do not use it after calling this method.
      */
-    dispose() {
+    dispose () {
         if (this._texture) {
             this._renderer.gl.deleteTexture(this._texture);
             this._texture = null;
@@ -33,7 +33,7 @@ class BitmapSkin extends Skin {
     /**
      * @return {Array<number>} the "native" size, in texels, of this skin.
      */
-    get size() {
+    get size () {
         return [this._textureSize[0] / this._costumeResolution, this._textureSize[1] / this._costumeResolution];
     }
 
@@ -42,7 +42,7 @@ class BitmapSkin extends Skin {
      * @return {WebGLTexture} The GL texture representation of this skin when drawing at the given scale.
      */
     // eslint-disable-next-line no-unused-vars
-    getTexture(scale) {
+    getTexture (scale) {
         return this._texture || super.getTexture();
     }
 
@@ -54,7 +54,7 @@ class BitmapSkin extends Skin {
      * calculated from the bounding box
      * @fires Skin.event:WasAltered
      */
-    setBitmap(bitmapData, costumeResolution, rotationCenter) {
+    setBitmap (bitmapData, costumeResolution, rotationCenter) {
         if (!bitmapData.width || !bitmapData.height) {
             super.setEmptyImageData();
             return;
@@ -98,7 +98,7 @@ class BitmapSkin extends Skin {
      * @returns {Array<int>} the width and height of the bitmap data, in pixels.
      * @private
      */
-    static _getBitmapSize(bitmapData) {
+    static _getBitmapSize (bitmapData) {
         if (bitmapData instanceof HTMLImageElement) {
             return [bitmapData.naturalWidth || bitmapData.width, bitmapData.naturalHeight || bitmapData.height];
         }
